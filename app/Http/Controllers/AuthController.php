@@ -4,48 +4,72 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    public function showLoginForm(){
-        return view('auth.login');
+    // Register User
+    public function register(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'required|string|max:20',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'password' => Hash::make($request->password),
+            'role' => 'user',
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Registration successful',
+            'user' => $user,
+            'token' => $token
+        ], 201);
     }
 
-    
-    public function login(Request $request){
-$credentials = $request ->only('emily','password') ;
-if(Auth::attempt($credentials )){
-    return redirect() ->intended('home');
-}
-return back() ->withErrors(['email' => 'the provided credentials do not match our0',]);
-}
+    // Login
+    public function login(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
 
-public function showsingupform(){
-    return view('auth.register');
-}
-public function register(Request $request){
-    $request ->validate([
-        'name'=> 'requied|string|email|max:255',
-        'email'=> 'requied|string|email|max:255|unique:user',
-        'password'=> 'requied|string|min:8|confirmed',
-    ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
-    $password_hash = Hash::make($request ->password);
-      User::create ([
+        $user = User::where('email', $request->email)->first();
 
-        'name'=> $request -> name,
-        'email'=> $request -> email,
-        'password'=> Hash::make ($request -> password),
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'message' => 'Invalid email or password'
+            ], 401);
+        }
 
-    ]);
-    
-    return redirect() ->route('login');
-}
-public function logout(){
-Auth::logout();
-return redirect() -> route('login');
-}
+        $token = $user->createToken('auth_token')->plainTextToken;
 
+        return response()->json([
+            'message' => 'Login successful',
+            'user' => $user,
+            'token' => $token
+        ], 200);
+    }
 }
