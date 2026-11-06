@@ -3,73 +3,81 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\RegisterUserRequest;
+use App\Http\Requests\LoginRequest;
 
 class AuthController extends Controller
 {
     // Register User
-    public function register(Request $request)
+    public function register(RegisterUserRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|string|max:20',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        $data = $request->validated();
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'],
+            'password' => Hash::make($data['password']),
             'role' => 'user',
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
+            'status' => true,
             'message' => 'Registration successful',
-            'user' => $user,
-            'token' => $token
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                ],
+                'token' => $token,
+            ]
         ], 201);
     }
 
-    // Login
-    public function login(Request $request)
+    // Login User or Delivery
+    public function login(LoginRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string',
-        ]);
+        $data = $request->validated();
 
-        if ($validator->fails()) {
+        $user = User::where('email', $data['email'])->first();
+
+        if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json([
-                'errors' => $validator->errors()
-            ], 422);
+                'status' => false,
+                'message' => 'Invalid email or password',
+                'data' => null
+            ], 401);
         }
 
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if ($user->role === 'admin') {
             return response()->json([
-                'message' => 'Invalid email or password'
-            ], 401);
+                'status' => false,
+                'message' => 'Please use the admin login endpoint',
+                'data' => null
+            ], 403);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
+            'status' => true,
             'message' => 'Login successful',
-            'user' => $user,
-            'token' => $token
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                ],
+                'token' => $token,
+            ]
         ], 200);
     }
 }
