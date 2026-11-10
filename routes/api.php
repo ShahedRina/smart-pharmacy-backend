@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\MedicineController;
+use App\Http\Controllers\Api\ProfileController;
 
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -24,6 +25,7 @@ Route::post('/admin/login', [AdminAuthController::class, 'adminLogin']);
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/me', [ProfileController::class, 'show']);
 
     // Admin Routes
     Route::middleware('is_admin')->prefix('admin')->group(function () {
