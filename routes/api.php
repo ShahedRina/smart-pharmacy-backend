@@ -26,6 +26,8 @@ Route::post('/admin/login', [AdminAuthController::class, 'adminLogin']);
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [ProfileController::class, 'show']);
+    Route::put('/me', [ProfileController::class, 'update']);
+    Route::put('/me/password', [ProfileController::class, 'updatePassword']);
 
     // Admin Routes
     Route::middleware('is_admin')->prefix('admin')->group(function () {
