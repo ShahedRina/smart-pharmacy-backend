@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\MedicineController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\AddressController;
 
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -28,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [ProfileController::class, 'show']);
     Route::put('/me', [ProfileController::class, 'update']);
     Route::put('/me/password', [ProfileController::class, 'updatePassword']);
+    Route::get('/addresses', [AddressController::class, 'index']);
 
     // Admin Routes
     Route::middleware('is_admin')->prefix('admin')->group(function () {
