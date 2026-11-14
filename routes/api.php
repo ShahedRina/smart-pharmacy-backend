@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\MedicineController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\AddressController;
+use App\Http\Controllers\Api\FamilyMemberController;
 
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -36,7 +37,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/addresses/{address}', [AddressController::class, 'destroy']);  
     Route::patch( '/addresses/{address}/default',[AddressController::class, 'setDefault']
 ); 
+// Family Members Routes
+Route::get('/family-members', [FamilyMemberController::class, 'index']);
+Route::post('/family-members', [FamilyMemberController::class, 'store']);
 
+Route::get('/family-members/{familyMember}', [FamilyMemberController::class, 'show']);
+Route::put('/family-members/{familyMember}', [FamilyMemberController::class, 'update']);
+Route::delete('/family-members/{familyMember}', [FamilyMemberController::class, 'destroy']);
+
+Route::post('/family-members/{familyMember}/link', [FamilyMemberController::class, 'link']);
+
+Route::patch('/family-members/{familyMember}/notify', [FamilyMemberController::class, 'notify']);
     // Admin Routes
     Route::middleware('is_admin')->prefix('admin')->group(function () {
 

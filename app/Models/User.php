@@ -52,4 +52,13 @@ class User extends Authenticatable
     {
         return $this->hasMany(Notification::class, 'account_id');
     }
+    public function familyMembers()
+{
+    return $this->hasMany(FamilyMember::class, 'caregiver_id');
+}
+
+public function linkedFamilyMembers()
+{
+    return $this->hasMany(FamilyMember::class, 'linked_account_id');
+}
 }
