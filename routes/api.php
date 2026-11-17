@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MedicineController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\FamilyMemberController;
+use App\Http\Controllers\Api\PrescriptionController;
 
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -27,6 +28,19 @@ Route::post('/admin/login', [AdminAuthController::class, 'adminLogin']);
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
+
+// Pharmacist Routes
+Route::middleware('is_admin')
+    ->prefix('pharmacist')
+    ->group(function () {
+Route::patch('/prescriptions/{id}/review', [PrescriptionController::class,'review']);
+        Route::get('/prescriptions', [ PrescriptionController::class,'pharmacistIndex' ]);
+
+    });
+
+
+
+
     Route::get('/me', [ProfileController::class, 'show']);
     Route::put('/me', [ProfileController::class, 'update']);
     Route::put('/me/password', [ProfileController::class, 'updatePassword']);
@@ -40,16 +54,23 @@ Route::middleware('auth:sanctum')->group(function () {
 // Family Members Routes
 Route::get('/family-members', [FamilyMemberController::class, 'index']);
 Route::post('/family-members', [FamilyMemberController::class, 'store']);
-
 Route::get('/family-members/{familyMember}', [FamilyMemberController::class, 'show']);
 Route::put('/family-members/{familyMember}', [FamilyMemberController::class, 'update']);
 Route::delete('/family-members/{familyMember}', [FamilyMemberController::class, 'destroy']);
-
 Route::post('/family-members/{familyMember}/link', [FamilyMemberController::class, 'link']);
-
 Route::patch('/family-members/{familyMember}/notify', [FamilyMemberController::class, 'notify']);
-    // Admin Routes
+// Prescriptions Routes
+Route::post('/prescriptions', [PrescriptionController::class, 'store']);
+Route::get('/prescriptions', [PrescriptionController::class, 'index']);
+Route::get('/prescriptions/{id}', [PrescriptionController::class, 'show']); 
+
+  
+
+
+
+// Admin Routes
     Route::middleware('is_admin')->prefix('admin')->group(function () {
+        
 
         Route::post('/admins', [AdminAuthController::class, 'createAdmin']);
         Route::post('/delivery', [AdminAuthController::class, 'createDelivery']);
@@ -64,6 +85,8 @@ Route::patch('/family-members/{familyMember}/notify', [FamilyMemberController::c
         Route::post('/medicines', [MedicineController::class, 'store']);
         Route::put('/medicines/{medicine}', [MedicineController::class, 'update']);
         Route::delete('/medicines/{medicine}', [MedicineController::class, 'destroy']);
+       
+        
     });
 
    
