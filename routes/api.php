@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\FamilyMemberController;
 use App\Http\Controllers\Api\PrescriptionController;
+use App\Http\Controllers\Api\OrderController;
 
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -38,9 +39,6 @@ Route::patch('/prescriptions/{id}/review', [PrescriptionController::class,'revie
 
     });
 
-
-
-
     Route::get('/me', [ProfileController::class, 'show']);
     Route::put('/me', [ProfileController::class, 'update']);
     Route::put('/me/password', [ProfileController::class, 'updatePassword']);
@@ -64,7 +62,12 @@ Route::post('/prescriptions', [PrescriptionController::class, 'store']);
 Route::get('/prescriptions', [PrescriptionController::class, 'index']);
 Route::get('/prescriptions/{id}', [PrescriptionController::class, 'show']); 
 
-  
+      // Orders
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::get('/orders/{id}', [OrderController::class, 'show']);
+    Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
+
 
 
 
