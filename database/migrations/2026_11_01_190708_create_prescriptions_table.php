@@ -29,7 +29,8 @@ return new class extends Migration
             ->nullOnDelete();
 
         $table->string('image_url', 255);
-        $table->string('status');
+        $table->enum('status', ['pending', 'approved','rejected',
+            ])->default('pending');
         $table->text('review_notes')->nullable();
 
         $table->timestamp('created_at')->useCurrent();
