@@ -67,6 +67,7 @@ Route::get('/prescriptions/{id}', [PrescriptionController::class, 'show']);
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
+    Route::get('/orders/{id}/history', [OrderController::class, 'history']);
 
 
 

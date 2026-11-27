@@ -12,6 +12,8 @@ use App\Models\Prescription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Models\OrderStatusHistory;
+use App\Services\OrderStatusService;
 
 class OrderController extends Controller
 {
@@ -19,7 +21,7 @@ class OrderController extends Controller
      * ORD-2, ORD-3, ORD-4
      * Create a new order
      */
-    public function store(Request $request)
+    public function store(Request $request, OrderStatusService $statusService)
     {
         $validated = $request->validate([
             'address_id' => ['required', 'exists:addresses,id'],
@@ -78,11 +80,13 @@ class OrderController extends Controller
             }
         }
 
-        $order = DB::transaction(function () use (
-            $validated,
-            $user,
-            $familyMember
-        ) {
+      $order = DB::transaction(function () use (
+    $validated,
+    $user,
+    $familyMember,
+    $statusService
+
+) {
             $items = [];
             $totalAmount = 0;
             $requiresPrescription = false;
@@ -166,6 +170,12 @@ class OrderController extends Controller
                     ? $familyMember->full_name
                     : $user->name,
             ]);
+            $statusService->change(
+            $order,
+             'pending',
+             $user->id,
+             'Order created'
+);
 
             // Create order details and deduct stock
             foreach ($items as $item) {
@@ -231,58 +241,95 @@ class OrderController extends Controller
         ], 200);
     }
 
+/**
+ * OSH-4
+ * Get order status history timeline
+ */
+public function history(Request $request, $id)
+{
+    $order = Order::findOrFail($id);
+
+    // Check order ownership
+    if ($order->customer_id != $request->user()->id) {
+        return response()->json([
+            'message' => 'You are not allowed to view this order history.'
+        ], 403);
+    }
+
+    // Get order history in chronological order
+    $history = OrderStatusHistory::where('order_id', $order->id)
+        ->with('user:id,name')
+        ->orderBy('changed_at', 'asc')
+        ->orderBy('id', 'asc')
+        ->get();
+
+    return response()->json([
+        'message' => 'Order history retrieved successfully.',
+        'data' => $history,
+    ], 200);
+}
+
+
     /**
      * ORD-6
      * Cancel pending order and restore stock
      */
-    public function cancel(Request $request, $id)
-    {
-        $user = $request->user();
+   
+/**
+ * ORD-6, OSH-3
+ * Cancel order and restore stock
+ */
+public function cancel(
+    Request $request,
+    $id,
+    OrderStatusService $statusService
+) {
+    $user = $request->user();
 
-        $order = DB::transaction(function () use ($id, $user) {
+    $order = DB::transaction(function () use (
+        $id,
+        $user,
+        $statusService
+    ) {
 
-            $order = Order::where('id', $id)
-                ->where('customer_id', $user->id)
+        $order = Order::where('id', $id)
+            ->where('customer_id', $user->id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        // Change status through Service
+        $statusService->change(
+            $order,
+            'cancelled',
+            $user->id,
+            'Order cancelled by customer'
+        );
+
+        // Restore medicine stock
+        $details = OrderDetail::where('order_id', $order->id)
+            ->get();
+
+        foreach ($details as $detail) {
+
+            $medicine = Medicine::where('id', $detail->medicine_id)
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->first();
 
-            if ($order->status !== 'pending') {
-                return null;
+            if ($medicine) {
+                $medicine->increment(
+                    'stock_quantity',
+                    $detail->quantity
+                );
             }
-
-            $details = OrderDetail::where('order_id', $order->id)
-                ->get();
-
-            foreach ($details as $detail) {
-
-                $medicine = Medicine::where('id', $detail->medicine_id)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($medicine) {
-                    $medicine->increment(
-                        'stock_quantity',
-                        $detail->quantity
-                    );
-                }
-            }
-
-            $order->update([
-                'status' => 'cancelled',
-            ]);
-
-            return $order;
-        });
-
-        if (!$order) {
-            return response()->json([
-                'message' => 'Only pending orders can be cancelled.'
-            ], 409);
         }
 
-        return response()->json([
-            'message' => 'Order cancelled and stock restored successfully.',
-            'data' => $order->load('orderDetails.medicine'),
-        ], 200);
-    }
+        return $order->fresh();
+    });
+
+    return response()->json([
+        'message' => 'Order cancelled and stock restored successfully.',
+        'data' => $order->load('orderDetails.medicine'),
+    ], 200);
+}
+
 }
